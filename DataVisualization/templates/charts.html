@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% block title %}图表{% endblock %}
+{% block init %}
+    onload="InitializeData();InitializeData1();InitializeData2();"
+{% endblock %}
+{% block pagetitle %}图表{% endblock %}
+{% block button %}
+    <div class="dropdown" style="display: inline-block;float: right">
+        <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown">
+            数据
+        </button>
+        <div class="dropdown-menu">
+            {% for file in file_name %}
+                <a class="dropdown-item" style="cursor: pointer"
+                   onclick="InitializeData({{ loop.index0 }});InitializeData1({{ loop.index0 }});">{{ file }}</a>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+{% block content %}
+    <div class="row">
+
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title" id="barTitle"></h5>
+                    <div id="barChart" style="min-height: 400px"></div>
+                    <script type="text/javascript">
+                        var barChart = echarts.init(document.querySelector('#barChart'));
+
+                        function setData(data) {
+                            // 三类合并的数据集
+                            if (data[0].length === 3 || data[0][0].name === '居民恩格尔系数') {
+                                var pattern = /[^全国居民]+/
+                                var str = '近十年' + pattern.exec(data[0][0].name);
+                                $('#barTitle').text(str)
+                                barChart.setOption({
+                                    legend: {},
+                                    tooltip: {},
+                                    dataset: {
+                                        source: data[1]
+                                    },
+                                    xAxis: {type: 'category'},
+                                    yAxis: {},
+                                    // Declare several bar series, each will be mapped
+                                    // to a column of dataset.source by default.
+                                    series: [{type: 'bar'}, {type: 'bar'}, {type: 'bar'}]
+                                }, true);
+                            } else {
+                                let series = []
+                                if ('农民工规模及收入主要数据' === data[0][0].name) {
+                                    series = [{type: 'bar'}, {type: 'bar'}, {type: 'bar'}, {type: 'bar'}, {type: 'bar'}]
+                                } else {
+                                    series = [{type: 'bar'}]
+                                }
+                                $('#barTitle').text('近十年' + data[0][0].name)
+                                barChart.setOption({
+                                    legend: {},
+                                    tooltip: {},
+                                    dataset: {
+                                        source: data[1]
+                                    },
+                                    xAxis: {type: 'category'},
+                                    yAxis: {},
+                                    // Declare several bar series, each will be mapped
+                                    // to a column of dataset.source by default.
+                                    series: series
+                                }, true);
+                            }
+
+                        }
+
+                        // 初始化数据
+                        function InitializeData(index = 0) {
+                            $(document).ready(function () {
+                                $.ajax({
+                                    url: `/chart${index}`,
+                                    type: 'GET',
+                                    dataType: 'json',
+                                    success: function (data) {
+                                        setData(data)
+                                    }
+                                })
+                            })
+                        }
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title" id="trackTitle"></h5>
+
+                    <!-- track Chart -->
+                    <div id="trackChart" style="min-height: 400px;" class="echart"></div>
+                    <script type="text/javascript">
+                        // 基于准备好的dom，初始化echarts实例
+                        var trackChart = echarts.init(document.querySelector('#trackChart'));
+
+                        // 初始化数据
+                        function InitializeData1(index = 0) {
+                            $(document).ready(function () {
+                                $.ajax({
+                                    url: `/track${index}`,
+                                    type: 'GET',
+                                    dataType: 'json',
+                                    success: function (data) {
+                                        console.log('data', data)
+                                        $('#trackTitle').text(data.title)
+                                        trackChart.setOption({
+                                            polar: {
+                                                radius: [10, '75%']
+                                            },
+                                            angleAxis: {
+                                                startAngle: 90
+                                            },
+                                            radiusAxis: {
+                                                type: 'category',
+                                                data: ['全国', '农村', '城镇'],
+                                            },
+                                            tooltip: {},
+                                            series: {
+                                                type: 'bar',
+                                                data: data.data,
+                                                coordinateSystem: 'polar',
+                                                label: {
+                                                    show: true,
+                                                    position: 'middle',
+                                                    formatter: '{b}: {c}'
+                                                },
+                                                itemStyle: {
+                                                    normal: {
+                                                        color: function (params) {
+                                                            // build a color map as your need.
+                                                            var colorList = [
+                                                                '#5470c6',
+                                                                '#91cc75',
+                                                                '#fac858'
+                                                            ];
+                                                            return colorList[params.dataIndex]
+                                                        },
+                                                    }
+                                                }
+                                            }
+                                        }, true)
+                                    }
+                                })
+                            })
+                        }
+
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title" id="shareTitle" style="display: inline-block"></h5>
+                    <div class="dropdown" style="display: inline-block;float: right">
+                        <button type="button" class="btn  dropdown-toggle" data-bs-toggle="dropdown">
+                            数据
+                        </button>
+                        <div class="dropdown-menu">
+                            {% for name in share_name %}
+                                <a class="dropdown-item" href="javascript:void(0)"
+                                   onclick="InitializeData2({{ loop.index0 }});">{{ name }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- share Chart -->
+                    <div id="shareChart" style="min-height: 750px;" class="echart"></div>
+
+                    <script>
+                        var chartDom = document.getElementById('shareChart');
+                        var shareChart = echarts.init(chartDom);
+                        var option;
+
+                        function InitializeData2(index = 0) {
+                            $(document).ready(function () {
+
+                                $.ajax({
+                                    url: `/share${index}`,
+                                    type: 'GET',
+                                    dataType: 'json',
+                                    success: function (data) {
+                                        $('#shareTitle').text(data.title)
+                                        console.log('data', data)
+                                        let series = [];
+                                        data.data.forEach(() => {
+                                            series.push({
+                                                type: 'line',
+                                                smooth: true,
+                                                seriesLayoutBy: 'row',
+                                                emphasis: {focus: 'series'}
+                                            })
+                                        })
+                                        series.push({
+                                            type: 'pie',
+                                            id: 'pie',
+                                            radius: '30%',
+                                            center: ['50%', '25%'],
+                                            emphasis: {
+                                                focus: 'self'
+                                            },
+                                            label: {
+                                                formatter: '{b}: {@2012} ({d}%)'
+                                            },
+                                            encode: {
+                                                itemName: 'product',
+                                                value: '2012',
+                                                tooltip: '2012'
+                                            }
+                                        })
+
+                                        setTimeout(function () {
+                                            option = {
+                                                legend: {},
+                                                tooltip: {
+                                                    trigger: 'axis',
+                                                    showContent: false
+                                                },
+                                                dataset: {
+                                                    source: data.data
+                                                },
+                                                xAxis: {type: 'category'},
+                                                yAxis: {gridIndex: 0},
+                                                grid: {top: '55%'},
+                                                series: series
+                                            };
+                                            shareChart.on('updateAxisPointer', function (event) {
+                                                const xAxisInfo = event.axesInfo[0];
+                                                if (xAxisInfo) {
+                                                    const dimension = xAxisInfo.value + 1;
+                                                    shareChart.setOption({
+                                                        series: {
+                                                            id: 'pie',
+                                                            label: {
+                                                                formatter: '{b}: {@[' + dimension + ']} ({d}%)'
+                                                            },
+                                                            encode: {
+                                                                value: dimension,
+                                                                tooltip: dimension
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                            shareChart.setOption(option, true);
+                                        });
+
+                                        option && shareChart.setOption(option, true);
+                                    }
+                                })
+                            })
+                        }
+                    </script>
+                    <!-- End shareChart -->
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
